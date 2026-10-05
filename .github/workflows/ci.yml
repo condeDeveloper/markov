@@ -1,0 +1,55 @@
+name: testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  testes:
+    runs-on: ${{ matrix.so }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        so: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # O juiz e a FRACAO de inteiro grande. Distribuicao estacionaria, tempo de
+      # retorno e PageRank sao todos solucao de um sistema linear racional, e em
+      # racional eles tem resposta exata; em ponto flutuante a soma das
+      # probabilidades da 0,9999999999999998 e ninguem sabe se o metodo errou ou
+      # se o arredondamento errou.
+      #
+      # Com a fracao, o teorema de Kac vira IGUALDADE: o tempo medio de retorno
+      # a um estado vezes a probabilidade dele da exatamente um, em todas as
+      # cadeias irredutiveis do repositorio.
+      - name: testes
+        run: dotnet test testes/Markov.Testes/Markov.Testes.csproj -c Release --nologo -v q
+
+      - name: a estacionaria exata, em fracao
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release -- estacionaria
+
+      - name: a velocidade e o segundo autovalor
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release -- velocidade
+
+      # O contraexemplo mais util daqui: o ciclo de quatro e irredutivel, tem
+      # estacionaria uniforme e unica, e a iteracao de potencia NUNCA chega
+      # nela. A distancia fica em 0,75 para sempre.
+      - name: a cadeia que tem estacionaria e nao converge
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release -- periodica
+
+      - name: o teorema de Kac em igualdade exata
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release -- kac
+
+      - name: o PageRank e o preco do amortecimento
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release -- pagerank
+
+      - name: Metropolis sem calcular a normalizacao
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release -- metropolis
